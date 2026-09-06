@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}חשבונית משלוח KBB{% endblock %}
+{% block content %}
+<div class="card">
+  <h2>🧾 חשבונית משלוח KBB</h2>
+  <p class="hint">
+    מעלים את חשבוניות ה-Proforma (PDF) של המשלוח, הכלי מאחד את כל השורות לפי מק"ט אל תוך תבנית חשבונית ה-KBB הקבועה.
+    <br>⚠️ <b>חשוב:</b> חילוץ הנתונים מה-PDF כאן חדש ולא נבדק עדיין מול חשבוניות אמיתיות — לפני משלוח ללקוח, יש להשוות ידנית את קובץ ה-Excel שיוצא כאן מול חשבוניות המקור. אם מופיעה שגיאת "בדיקת סכימה נכשלה" — זה בדיוק המנגנון שנועד לתפוס טעויות חילוץ, ויש לפנות לכיול מחדש.
+  </p>
+  <form method="post" enctype="multipart/form-data">
+    <input type="hidden" name="action" value="consolidate">
+    <label for="pdf_files">קבצי חשבונית Proforma (PDF, ניתן לבחור כמה)</label>
+    <input type="file" id="pdf_files" name="pdf_files" accept="application/pdf" multiple required>
+
+    <label for="template_file">תבנית KBB (אופציונלי — אם לא מעלים, ישתמש בתבנית שנשמרה מראש בשרת)</label>
+    <input type="file" id="template_file" name="template_file" accept=".xlsx">
+    <p class="hint">יש להעתיק את קובץ "COMMERCIAL INVOICE MANUAL RMA KBB.xlsx" האמיתי שלכם ל- assets/kbb_invoice_template.xlsx בשרת כדי שלא יהיה צורך להעלות אותו בכל פעם.</p>
+
+    <label for="dims">מידות (DIMS) — לא ניתן לחלץ מה-PDF, יש למלא ידנית</label>
+    <input type="text" id="dims" name="dims" placeholder="לדוגמה: 40 x 30 x 20 cm" required>
+
+    <label>שדות שמחושבים אוטומטית — ניתן לדרוס ידנית (השאירו ריק כדי לקבל חישוב אוטומטי)</label>
+    <input type="text" name="reference_no" placeholder="Reference No (ברירת מחדל: מספרי המשלוחים מה-PDF)">
+    <input type="text" name="gross_weight" placeholder='Gross weight, לדוגמה "12.5 KG" (ברירת מחדל: סכום מה-PDF)' style="margin-top:8px;">
+    <input type="text" name="defective_return" placeholder="Defective unit return / HAWB (ברירת מחדל: מה-PDF)" style="margin-top:8px;">
+    <input type="text" name="ship_date" placeholder="Ship Date, לדוגמה 06/09/2026 (ברירת מחדל: היום)" style="margin-top:8px;">
+
+    <button class="primary" type="submit">אחד לקובץ Excel</button>
+  </form>
+</div>
+
+{% if result and not result.pdf_only %}
+<div class="card">
+  <h2>✅ קובץ Excel מוכן</h2>
+  <table class="summary">
+    <tr><th>מס' חשבוניות מקור</th><th>שורות פריט ייחודיות</th><th>סה"כ שווי</th></tr>
+    <tr><td>{{ result.n_invoices }}</td><td>{{ result.unique_items }}</td><td>{{ "%.2f"|format(result.total_value) }}</td></tr>
+  </table>
+  <div class="files">
+    <a href="{{ url_for('download', run_id=result.run_id, filename=result.xlsx_name) }}">⬇️ חשבונית KBB (Excel)</a>
+  </div>
+  {% if result.price_conflicts %}
+    <div class="msg warn" style="margin-top:16px;">
+      ⚠️ נמצא יותר ממחיר יחידה אחד עבור אותו מק"ט בין החשבוניות:<br>
+      {% for c in result.price_conflicts %}
+        {{ c.part_number }}: {{ c.prices }}<br>
+      {% endfor %}
+    </div>
+  {% endif %}
+  <p class="hint">בדקו את הקובץ מול חשבוניות המקור לפני שליחה ללקוח. לאחר אישור, ניתן להעלות אותו למטה לייצוא PDF.</p>
+</div>
+{% endif %}
+
+<div class="card">
+  <h2>🖨️ ייצוא ל-PDF (לאחר אישור)</h2>
+  <form method="post" enctype="multipart/form-data">
+    <input type="hidden" name="action" value="export_pdf">
+    <label for="xlsx_file">קובץ ה-Excel המאושר</label>
+    <input type="file" id="xlsx_file" name="xlsx_file" accept=".xlsx" required>
+    <button class="primary" type="submit">ייצא ל-PDF</button>
+  </form>
+  {% if result and result.pdf_only %}
+    <div class="files" style="margin-top:16px;">
+      <a href="{{ url_for('download', run_id=result.run_id, filename=result.pdf_name) }}">⬇️ הקובץ כ-PDF</a>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

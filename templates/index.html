@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}דף הבית — כלי KBB{% endblock %}
+{% block content %}
+<div class="card">
+  <h2>בחר כלי</h2>
+  <div class="tool-grid">
+    <a class="tool-card" href="{{ url_for('weekly_sms_page') }}">
+      <div class="emoji">📩</div>
+      <h3>רשימות SMS שבועיות</h3>
+      <p>העלאת דוח Operational Business והפקת קובץ רשימות SMS + קובץ עדכון App2U.</p>
+    </a>
+    <a class="tool-card" href="{{ url_for('packing_list_page') }}">
+      <div class="emoji">📦</div>
+      <h3>איחוד תעודות משלוח (Packing List)</h3>
+      <p>איחוד כמה קבצי Packing List של KBB לקובץ Excel מאוחד אחד, ואז ל-PDF.</p>
+    </a>
+    <a class="tool-card" href="{{ url_for('invoice_page') }}">
+      <div class="emoji">🧾</div>
+      <h3>חשבונית משלוח KBB</h3>
+      <p>איחוד כמה חשבוניות Proforma לקובץ Excel לפי תבנית KBB הקבועה, ואז ל-PDF.</p>
+    </a>
+  </div>
+</div>
+{% endblock %}

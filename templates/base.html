@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}כלי KBB{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <header class="topbar">
+    <h1>🧰 כלי אוטומציה — KBB / DCS</h1>
+    <a href="{{ url_for('index') }}">חזרה לדף הראשי</a>
+  </header>
+  <main>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="msg {{ 'err' if category == 'err' else 'ok' }}">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+  </main>
+  <footer>כלי פנימי לשימוש עובדי החברה — כל העיבוד מתבצע מקומית על השרת, ללא חיבור ל-AI.</footer>
+</body>
+</html>

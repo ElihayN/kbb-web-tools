@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}איחוד תעודות משלוח{% endblock %}
+{% block content %}
+<div class="card">
+  <h2>📦 איחוד תעודות משלוח (Packing List) — KBB</h2>
+  <p class="hint">מעלים כמה קבצי Packing List (PDF) לאותו משלוח, הכלי מאחד לפריט אחד לכל מק"ט ובונה קובץ Excel מסודר. לאחר בדיקה — ניתן לייצא ל-PDF.</p>
+  <form method="post" enctype="multipart/form-data">
+    <input type="hidden" name="action" value="consolidate">
+    <label for="pdf_files">קבצי Packing List (PDF, ניתן לבחור כמה)</label>
+    <input type="file" id="pdf_files" name="pdf_files" accept="application/pdf" multiple required>
+    <button class="primary" type="submit">אחד לקובץ Excel</button>
+  </form>
+</div>
+
+{% if result and not result.pdf_only %}
+<div class="card">
+  <h2>✅ קובץ Excel מאוחד מוכן</h2>
+  <table class="summary">
+    <tr><th>מס' משלוחים</th><th>שורות פריט ייחודיות</th><th>סה"כ כמות</th></tr>
+    <tr><td>{{ result.n_shipments }}</td><td>{{ result.unique_items }}</td><td>{{ result.total_quantity }}</td></tr>
+  </table>
+  <div class="files">
+    <a href="{{ url_for('download', run_id=result.run_id, filename=result.xlsx_name) }}">⬇️ Packing List מאוחד (Excel)</a>
+  </div>
+  {% if result.conflicts %}
+    <div class="msg warn" style="margin-top:16px;">
+      ⚠️ נמצא יותר ממדינת מקור אחת עבור אותו מק"ט (נבחרה המדינה השכיחה יותר):<br>
+      {% for c in result.conflicts %}
+        {{ c.part_number }}: {{ c.countries }} → נבחר {{ c.chosen }}<br>
+      {% endfor %}
+    </div>
+  {% endif %}
+  <p class="hint">לפני ייצוא ל-PDF, מומלץ לפתוח את קובץ ה-Excel ולוודא שהכל תקין. לאחר האישור, אפשר להעלות אותו כאן (גם אם ערכתם משהו ידנית) לייצוא PDF עם עימוד נכון.</p>
+</div>
+{% endif %}
+
+<div class="card">
+  <h2>🖨️ ייצוא ל-PDF (לאחר אישור)</h2>
+  <form method="post" enctype="multipart/form-data">
+    <input type="hidden" name="action" value="export_pdf">
+    <label for="xlsx_file">קובץ ה-Excel המאושר</label>
+    <input type="file" id="xlsx_file" name="xlsx_file" accept=".xlsx" required>
+    <button class="primary" type="submit">ייצא ל-PDF</button>
+  </form>
+  {% if result and result.pdf_only %}
+    <div class="files" style="margin-top:16px;">
+      <a href="{{ url_for('download', run_id=result.run_id, filename=result.pdf_name) }}">⬇️ הקובץ כ-PDF</a>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}
