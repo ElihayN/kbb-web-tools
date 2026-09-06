@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
 import os
 import uuid
+import secrets
 import traceback
+from functools import wraps
 
 from flask import (
-    Flask, render_template, request, redirect, url_for, send_from_directory, flash
+    Flask, render_template, request, redirect, url_for, send_from_directory, flash, Response
 )
 from werkzeug.utils import secure_filename
 
@@ -24,6 +26,32 @@ os.makedirs(ASSETS_DIR, exist_ok=True)
 app = Flask(__name__)
 app.secret_key = "kbb-internal-tools"  # internal LAN tool, not internet-facing
 app.config["MAX_CONTENT_LENGTH"] = 200 * 1024 * 1024  # 200MB
+
+# --------------------------------------------------------------- basic auth
+# This app handles customer phone numbers and customs invoices. The moment
+# it's reachable over the open internet (even via a "hidden" temporary
+# tunnel URL), anyone who finds/guesses the URL can see that data unless we
+# gate it. AUTH_USER / AUTH_PASS can be overridden via environment
+# variables for a real deployment; a random password is generated per
+# process start otherwise so there's never a silent no-auth mode.
+AUTH_USER = os.environ.get("KBB_AUTH_USER", "kbb")
+AUTH_PASS = os.environ.get("KBB_AUTH_PASS") or secrets.token_urlsafe(9)
+if not os.environ.get("KBB_AUTH_PASS"):
+    print(f"[auth] no KBB_AUTH_PASS set — generated one for this run: {AUTH_PASS}")
+
+
+def _check_auth(username, password):
+    return secrets.compare_digest(username, AUTH_USER) and secrets.compare_digest(password, AUTH_PASS)
+
+
+@app.before_request
+def _require_auth():
+    auth = request.authorization
+    if not auth or not _check_auth(auth.username, auth.password):
+        return Response(
+            "Authentication required.", 401,
+            {"WWW-Authenticate": 'Basic realm="KBB Tools"'},
+        )
 
 
 def new_run_dir():
@@ -205,5 +233,8 @@ def download(run_id, filename):
 
 if __name__ == "__main__":
     # 0.0.0.0 so other computers on the local network can reach it too,
-    # e.g. http://<this-computer's-LAN-IP>:5000
-    app.run(host="0.0.0.0", port=5000, debug=False)
+    # e.g. http://<this-computer's-LAN-IP>:5000 — and PORT is honored so
+    # this same entrypoint works unchanged on Render/Railway/etc, which
+    # assign the port at runtime via that env var.
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=False)
